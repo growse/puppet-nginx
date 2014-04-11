@@ -29,7 +29,7 @@ class nginx::params {
   $nx_types_hash_bucket_size  = 512
   $nx_names_hash_bucket_size  = 64
   $nx_names_hash_max_size     = 512
-  $nx_multi_accept            = off
+  $nx_multi_accept            = on
   # One of [kqueue|rtsig|epoll|/dev/poll|select|poll|eventport]
   # or false to use OS default
   $nx_events_use              = false
