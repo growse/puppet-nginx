@@ -1,14 +1,20 @@
-user <%= scope.lookupvar('nginx::config::nx_daemon_user') %>;
+<% if @super_user -%>
+user <%= @daemon_user %>;
+<% end -%>
 worker_processes <%= @worker_processes %>;
 worker_rlimit_nofile <%= @worker_rlimit_nofile %>;
 
 error_log  <%= @nginx_error_log %>;
-pid        <%= scope.lookupvar('nginx::params::nx_pid')%>;
+<% if scope.lookupvar('nginx::params::nx_pid') != false %>pid        <%= scope.lookupvar('nginx::params::nx_pid')%>;<% end -%>
 
 events {
   worker_connections <%= @worker_connections -%>;
-<% if scope.lookupvar('nginx::params::nx_multi_accept') == 'on' %>multi_accept on;<% end -%>
-<% if scope.lookupvar('nginx::params::nx_events_use') %>use <%= scope.lookupvar('nginx::params::nx_events_use')%>;<% end -%>
+  <% if @multi_accept == 'on' -%>
+    multi_accept on;
+  <% end -%>
+  <% if @events_use -%>
+    use <%= @events_use %>;
+  <% end -%>
 }
 
 http {

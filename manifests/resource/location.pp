@@ -111,10 +111,10 @@ define nginx::resource::location (
     'index.htm',
     'index.php'],
   $proxy                = undef,
-  $proxy_redirect       = $nginx::params::nx_proxy_redirect,
-  $proxy_read_timeout   = $nginx::params::nx_proxy_read_timeout,
-  $proxy_connect_timeout = $nginx::params::nx_proxy_connect_timeout,
-  $proxy_set_header     = $nginx::params::nx_proxy_set_header,
+  $proxy_redirect       = $nginx::config::proxy_redirect,
+  $proxy_read_timeout   = $nginx::config::proxy_read_timeout,
+  $proxy_connect_timeout = $nginx::config::proxy_connect_timeout,
+  $proxy_set_header     = $nginx::config::proxy_set_header,
   $fastcgi              = undef,
   $fastcgi_params       = '/etc/nginx/fastcgi_params',
   $fastcgi_script       = undef,
@@ -243,7 +243,7 @@ define nginx::resource::location (
   $config_file = "${nginx::config::nx_conf_dir}/sites-available/${vhost_sanitized}.conf"
 
   $location_sanitized_tmp = regsubst($location, '\/', '_', 'G')
-  $location_sanitized = regsubst($location_sanitized_tmp, '\\', '_', 'G')
+  $location_sanitized = regsubst($location_sanitized_tmp, "\\\\", '_', 'G')
 
   ## Check for various error conditions
   if ($vhost == undef) {
@@ -281,7 +281,6 @@ define nginx::resource::location (
 
   ## Create stubs for vHost File Fragment Pattern
   if ($ssl_only != true) {
-    
     $tmpFile=md5("${vhost_sanitized}-${priority}-${location_sanitized}")
 
     concat::fragment { "${tmpFile}":
@@ -294,11 +293,9 @@ define nginx::resource::location (
 
   ## Only create SSL Specific locations if $ssl is true.
   if ($ssl == true) {
-    
     $ssl_priority = $priority + 300
 
     $sslTmpFile=md5("${vhost_sanitized}-${ssl_priority}-${location_sanitized}-ssl")
-    
     concat::fragment {"${sslTmpFile}":
       ensure  => present,
       target  => $config_file,
