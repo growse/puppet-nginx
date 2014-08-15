@@ -34,6 +34,7 @@
 #     nginx::resource::upstream
 #   [*proxy_read_timeout*]  - Override the default the proxy read timeout value
 #     of 90 seconds
+#   [*proxy_redirect*]      - Override the default proxy_redirect value of off.
 #   [*resolver*]            - Array: Configures name servers used to resolve
 #     names of upstream servers into addresses.
 #   [*fastcgi*]             - location of fastcgi (host:port)
@@ -89,6 +90,22 @@
 #   [*auth_basic_user_file*]    - This directive sets the htpasswd filename for
 #     the authentication realm.
 #   [*client_max_body_size*]    - This directive sets client_max_body_size.
+#   [*client_body_timeout*]     - Sets how long the server will wait for a
+#      client body. Default is 60s
+#   [*client_header_timeout*]     - Sets how long the server will wait for a
+#      client header. Default is 60s
+#   [*raw_prepend*]            - A single string, or an array of strings to
+#     prepend to the server directive (after cfg prepend directives). NOTE:
+#     YOU are responsible for a semicolon on each line that requires one.
+#   [*raw_append*]             - A single string, or an array of strings to
+#     append to the server directive (after cfg append directives). NOTE:
+#     YOU are responsible for a semicolon on each line that requires one.
+#   [*location_raw_prepend*]          - A single string, or an array of strings
+#     to prepend to the location directive (after custom_cfg directives). NOTE:
+#     YOU are responsible for a semicolon on each line that requires one.
+#   [*location_raw_append*]           - A single string, or an array of strings
+#     to append to the location directive (after custom_cfg directives). NOTE:
+#     YOU are responsible for a semicolon on each line that requires one.
 #   [*vhost_cfg_append*]        - It expects a hash with custom directives to
 #     put after everything else inside vhost
 #   [*vhost_cfg_prepend*]       - It expects a hash with custom directives to
@@ -112,6 +129,10 @@
 #   [*log_by_lua_file*]         - Equivalent to log_by_lua, except that the file
 #     specified by <path-to-lua-script-file> contains the Lua code, or, as from
 #     the v0.5.0rc32 release, the Lua/LuaJIT bytecode to be executed.
+#   [*gzip_types*]              - Defines gzip_types, nginx default is text/html
+#   [*owner*]                   - Defines owner of the .conf file
+#   [*group*]                   - Defines group of the .conf file
+#   [*mode*]                    - Defines mode of the .conf file
 # Actions:
 #
 # Requires:
@@ -150,8 +171,9 @@ define nginx::resource::vhost (
   $ssl_stapling_responder = undef,
   $ssl_stapling_verify    = false,
   $ssl_trusted_cert       = undef,
-  $spdy                   = $nginx::params::nx_spdy,
+  $spdy                   = $nginx::config::spdy,
   $proxy                  = undef,
+  $proxy_redirect         = undef,
   $proxy_read_timeout     = $nginx::config::proxy_read_timeout,
   $proxy_connect_timeout  = $nginx::config::proxy_connect_timeout,
   $proxy_set_header       = [],
@@ -161,7 +183,7 @@ define nginx::resource::vhost (
   $proxy_set_body         = undef,
   $resolver               = [],
   $fastcgi                = undef,
-  $fastcgi_params         = '/etc/nginx/fastcgi_params',
+  $fastcgi_params         = "${nginx::config::conf_dir}/fastcgi_params",
   $fastcgi_script         = undef,
   $index_files            = [
     'index.html',
@@ -180,7 +202,13 @@ define nginx::resource::vhost (
   $try_files              = undef,
   $auth_basic             = undef,
   $auth_basic_user_file   = undef,
+  $client_body_timeout    = undef,
+  $client_header_timeout  = undef,
   $client_max_body_size   = undef,
+  $raw_prepend            = undef,
+  $raw_append             = undef,
+  $location_raw_prepend   = undef,
+  $location_raw_append    = undef,
   $vhost_cfg_prepend      = undef,
   $vhost_cfg_append       = undef,
   $vhost_cfg_ssl_prepend      = undef,
@@ -194,6 +222,12 @@ define nginx::resource::vhost (
   $log_by_lua_file        = undef,
   $use_default_location   = true,
   $rewrite_rules          = [],
+  $string_mappings        = {},
+  $geo_mappings           = {},
+  $gzip_types             = undef,
+  $owner                  = $nginx::config::global_owner,
+  $group                  = $nginx::config::global_group,
+  $mode                   = $nginx::config::global_mode,
 ) {
 
   validate_re($ensure, '^(present|absent)$',
@@ -249,6 +283,7 @@ define nginx::resource::vhost (
     validate_string($proxy)
   }
   validate_string($proxy_read_timeout)
+  validate_string($proxy_redirect)
   validate_array($proxy_set_header)
   if ($proxy_cache != false) {
     validate_string($proxy_cache)
@@ -281,6 +316,34 @@ define nginx::resource::vhost (
   validate_bool($rewrite_www_to_non_www)
   if ($rewrite_to_https != undef) {
     validate_bool($rewrite_to_https)
+  }
+  if ($raw_prepend != undef) {
+    if (is_array($raw_prepend)) {
+      validate_array($raw_prepend)
+    } else {
+      validate_string($raw_prepend)
+    }
+  }
+  if ($raw_append != undef) {
+    if (is_array($raw_append)) {
+      validate_array($raw_append)
+    } else {
+      validate_string($raw_append)
+    }
+  }
+  if ($location_raw_prepend != undef) {
+    if (is_array($location_raw_prepend)) {
+      validate_array($location_raw_prepend)
+    } else {
+      validate_string($location_raw_prepend)
+    }
+  }
+  if ($location_raw_append != undef) {
+    if (is_array($location_raw_append)) {
+      validate_array($location_raw_append)
+    } else {
+      validate_string($location_raw_append)
+    }
   }
   if ($location_custom_cfg != undef) {
     validate_hash($location_custom_cfg)
@@ -330,12 +393,28 @@ define nginx::resource::vhost (
   if ($log_by_lua_file != undef) {
     validate_string($log_by_lua_file)
   }
+  if ($client_body_timeout != undef) {
+    validate_string($client_body_timeout)
+  }
+  if ($client_header_timeout != undef) {
+    validate_string($client_header_timeout)
+  }
+  if ($gzip_types != undef) {
+    validate_string($gzip_types)
+  }
   validate_bool($use_default_location)
   validate_array($rewrite_rules)
+  validate_hash($string_mappings)
+  validate_hash($geo_mappings)
+
+  validate_string($owner)
+  validate_string($group)
+  validate_re($mode, '^\d{4}$',
+    "${mode} is not valid. It should be 4 digits (0644 by default).")
 
   # Variables
-  $vhost_dir = "${nginx::config::nx_conf_dir}/sites-available"
-  $vhost_enable_dir = "${nginx::config::nx_conf_dir}/sites-enabled"
+  $vhost_dir = "${nginx::config::conf_dir}/sites-available"
+  $vhost_enable_dir = "${nginx::config::conf_dir}/sites-enabled"
   $vhost_symlink_ensure = $ensure ? {
     'absent' => absent,
     default  => 'link',
@@ -350,9 +429,9 @@ define nginx::resource::vhost (
       default  => 'file',
     },
     notify => Class['nginx::service'],
-    owner  => 'root',
-    group  => 'root',
-    mode   => '0644',
+    owner  => $owner,
+    group  => $group,
+    mode   => $mode,
   }
 
   # Add IPv6 Logic Check - Nginx service will not start if ipv6 is enabled
@@ -373,7 +452,7 @@ define nginx::resource::vhost (
   # Also opted to add more logic here and keep template cleaner which
   # unfortunately means resorting to the $varname_real thing
   $access_log_tmp = $access_log ? {
-    undef   => "${nginx::params::nx_logdir}/${name_sanitized}.access.log",
+    undef   => "${nginx::config::logdir}/${name_sanitized}.access.log",
     default => $access_log,
   }
 
@@ -383,14 +462,14 @@ define nginx::resource::vhost (
   }
 
   $error_log_real = $error_log ? {
-    undef   => "${nginx::params::nx_logdir}/${name_sanitized}.error.log",
+    undef   => "${nginx::config::logdir}/${name_sanitized}.error.log",
     default => $error_log,
   }
 
   concat { $config_file:
-    owner  => 'root',
-    group  => 'root',
-    mode   => '0644',
+    owner  => $owner,
+    group  => $group,
+    mode   => $mode,
     notify => Class['nginx::service'],
   }
 
@@ -407,6 +486,7 @@ define nginx::resource::vhost (
       location_allow        => $location_allow,
       location_deny         => $location_deny,
       proxy                 => $proxy,
+      proxy_redirect        => $proxy_redirect,
       proxy_read_timeout    => $proxy_read_timeout,
       proxy_connect_timeout => $proxy_connect_timeout,
       proxy_cache           => $proxy_cache,
@@ -423,6 +503,8 @@ define nginx::resource::vhost (
       location_custom_cfg   => $location_custom_cfg,
       notify                => Class['nginx::service'],
       rewrite_rules         => $rewrite_rules,
+      raw_prepend           => $location_raw_prepend,
+      raw_append            => $location_raw_append
     }
     $root = undef
   } else {
@@ -450,8 +532,8 @@ define nginx::resource::vhost (
       location_custom_cfg_append => $location_custom_cfg_append }
   }
 
-  if $fastcgi != undef and !defined(File['/etc/nginx/fastcgi_params']) {
-    file { '/etc/nginx/fastcgi_params':
+  if $fastcgi != undef and !defined(File[$fastcgi_params]) {
+    file { $fastcgi_params:
       ensure  => present,
       mode    => '0770',
       content => template('nginx/vhost/fastcgi_params.erb'),
@@ -485,7 +567,7 @@ define nginx::resource::vhost (
     # Also opted to add more logic here and keep template cleaner which
     # unfortunately means resorting to the $varname_real thing
     $ssl_access_log_tmp = $access_log ? {
-      undef   => "${nginx::params::nx_logdir}/ssl-${name_sanitized}.access.log",
+      undef   => "${nginx::config::logdir}/ssl-${name_sanitized}.access.log",
       default => $access_log,
     }
 
@@ -495,7 +577,7 @@ define nginx::resource::vhost (
     }
 
     $ssl_error_log_real = $error_log ? {
-      undef   => "${nginx::params::nx_logdir}/ssl-${name_sanitized}.error.log",
+      undef   => "${nginx::config::logdir}/ssl-${name_sanitized}.error.log",
       default => $error_log,
     }
 
@@ -515,32 +597,32 @@ define nginx::resource::vhost (
 
     # Check if the file has been defined before creating the file to
     # avoid the error when using wildcard cert on the multiple vhosts
-    ensure_resource('file', "${nginx::params::nx_conf_dir}/${cert}.crt", {
+    ensure_resource('file', "${nginx::config::conf_dir}/${cert}.crt", {
       owner  => $nginx::config::daemon_user,
       mode   => '0444',
       source => $ssl_cert,
     })
-    ensure_resource('file', "${nginx::params::nx_conf_dir}/${cert}.key", {
+    ensure_resource('file', "${nginx::config::conf_dir}/${cert}.key", {
       owner  => $nginx::config::daemon_user,
       mode   => '0440',
       source => $ssl_key,
     })
     if ($ssl_dhparam != undef) {
-      ensure_resource('file', "${nginx::params::nx_conf_dir}/${cert}.dh.pem", {
+      ensure_resource('file', "${nginx::config::conf_dir}/${cert}.dh.pem", {
         owner  => $nginx::config::daemon_user,
         mode   => '0440',
         source => $ssl_dhparam,
       })
     }
     if ($ssl_stapling_file != undef) {
-      ensure_resource('file', "${nginx::params::nx_conf_dir}/${cert}.ocsp.resp", {
+      ensure_resource('file', "${nginx::config::conf_dir}/${cert}.ocsp.resp", {
         owner  => $nginx::config::daemon_user,
         mode   => '0440',
         source => $ssl_stapling_file,
       })
     }
     if ($ssl_trusted_cert != undef) {
-      ensure_resource('file', "${nginx::params::nx_conf_dir}/${cert}.trusted.crt", {
+      ensure_resource('file', "${nginx::config::conf_dir}/${cert}.trusted.crt", {
         owner  => $nginx::config::daemon_user,
         mode   => '0440',
         source => $ssl_trusted_cert,
@@ -555,4 +637,7 @@ define nginx::resource::vhost (
     require => Concat[$config_file],
     notify  => Service['nginx'],
   }
+
+  create_resources('nginx::resource::map', $string_mappings)
+  create_resources('nginx::resource::geo', $geo_mappings)
 }

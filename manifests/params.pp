@@ -35,7 +35,8 @@ class nginx::params {
   $nx_events_use                     = false
   $nx_sendfile                       = on
   $nx_keepalive_timeout              = 65
-  $nx_tcp_nodelay                    = on
+  $nx_http_tcp_nodelay               = on
+  $nx_http_tcp_nopush                = off
   $nx_gzip                           = on
   $nx_server_tokens                  = on
   $nx_spdy                           = off
@@ -73,24 +74,25 @@ class nginx::params {
   $nx_proxy_buffer_size              = '8k'
   $nx_proxy_headers_hash_bucket_size = '64'
 
-  $nx_logdir = $::kernel ? {
-    /(?i-mx:linux)/ => '/var/log/nginx',
-    /(?i-mx:sunos)/ => '/var/log/nginx',
-  }
+  $nx_logdir = '/var/log/nginx'
 
   $nx_pid = $::kernel ? {
-    /(?i-mx:linux)/  => $::osfamily ? {
+    /(?i-mx:linux)/   => $::osfamily ? {
         # archlinux has hardcoded pid in service file to /run/nginx.pid, setting
         # it will prevent nginx from starting
         /(?i-mx:archlinux)/ => false,
         default             => '/var/run/nginx.pid',
     },
-    /(?i-mx:sunos)/  => '/var/run/nginx.pid',
+    /(?i-mx:sunos)/   => '/var/run/nginx.pid',
+    /(?i-mx:freebsd)/ => '/var/run/nginx.pid',
   }
 
   $nx_conf_dir = $::kernelversion ? {
-    /(?i-mx:joyent)/ => '/opt/local/etc/nginx',
-    default => '/etc/nginx',
+    /(?i-mx:joyent)/    => '/opt/local/etc/nginx',
+    default             => $::kernel ? {
+      /(?i-mx:freebsd)/ => '/usr/local/etc/nginx',
+      default           => '/etc/nginx',
+    }
   }
 
   if $::osfamily {
@@ -103,6 +105,7 @@ class nginx::params {
       /(?i-mx:redhat|suse|gentoo|linux)/ => 'nginx',
       /(?i-mx:debian)/                   => 'www-data',
       /(?i-mx:solaris)/                  => $solaris_nx_daemon_user,
+      /(?i-mx:freebsd)/                  => 'www',
     }
   } else {
     warning('$::osfamily not defined. Support for $::operatingsystem is deprecated')
@@ -112,7 +115,13 @@ class nginx::params {
       /(?i-mx:debian|ubuntu)/                                                                => 'www-data',
       /(?i-mx:fedora|rhel|redhat|centos|scientific|suse|opensuse|amazon|gentoo|oraclelinux)/ => 'nginx',
       /(?i-mx:solaris)/                                                                      => 'webservd',
+      /(?i-mx:freebsd)/                                                                      => 'www',
     }
+  }
+
+  $root_group = $::operatingsystem ? {
+    'FreeBSD' => 'wheel',
+    default   => 'root',
   }
 
   # Nginx is default launched as root if not change this parameter
@@ -139,4 +148,14 @@ class nginx::params {
   $package_ensure = 'present'
   $package_source = 'nginx'
   $manage_repo    = true
+
+  # Specific owner for sites-available directory
+  $sites_available_owner = 'root'
+  $sites_available_group = $root_group
+  $sites_available_mode  = '0644'
+
+  # Owner for all other files
+  $global_owner = 'root'
+  $global_group = $root_group
+  $global_mode  = '0644'
 }

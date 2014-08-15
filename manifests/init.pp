@@ -30,9 +30,11 @@
 # }
 class nginx (
   $client_body_buffer_size        = $nginx::params::nx_client_body_buffer_size,
+  $client_body_temp_path          = $nginx::params::nx_client_body_temp_path,
   $client_max_body_size           = $nginx::params::nx_client_max_body_size,
   $confd_purge                    = $nginx::params::nx_confd_purge,
   $configtest_enable              = $nginx::params::nx_configtest_enable,
+  $conf_dir                       = $nginx::params::nx_conf_dir,
   $conf_template                  = $nginx::params::nx_conf_template,
   $daemon_user                    = $nginx::params::nx_daemon_user,
   $events_use                     = $nginx::params::nx_events_use,
@@ -46,6 +48,10 @@ class nginx (
   $gzip                           = $nginx::params::nx_gzip,
   $http_access_log                = $nginx::params::nx_http_access_log,
   $http_cfg_append                = $nginx::params::nx_http_cfg_append,
+  $http_tcp_nodelay               = $nginx::params::nx_http_tcp_nodelay,
+  $http_tcp_nopush                = $nginx::params::nx_http_tcp_nopush,
+  $keepalive_timeout              = $nginx::params::nx_keepalive_timeout,
+  $logdir                         = $nginx::params::nx_logdir,
   $mail                           = $nginx::params::nx_mail,
   $manage_repo                    = $nginx::params::manage_repo,
   $multi_accept                   = $nginx::params::nx_multi_accept,
@@ -59,6 +65,7 @@ class nginx (
   $package_ensure                 = $nginx::params::package_ensure,
   $package_name                   = $nginx::params::package_name,
   $package_source                 = $nginx::params::package_source,
+  $pid                            = $nginx::params::nx_pid,
   $proxy_buffers                  = $nginx::params::nx_proxy_buffers,
   $proxy_buffer_size              = $nginx::params::nx_proxy_buffer_size,
   $proxy_cache_inactive           = $nginx::params::nx_proxy_cache_inactive,
@@ -74,14 +81,29 @@ class nginx (
   $proxy_redirect                 = $nginx::params::nx_proxy_redirect,
   $proxy_send_timeout             = $nginx::params::nx_proxy_send_timeout,
   $proxy_set_header               = $nginx::params::nx_proxy_set_header,
+  $proxy_temp_path                = $nginx::params::nx_proxy_temp_path,
+  $run_dir                        = $nginx::params::nx_run_dir,
+  $sendfile                       = $nginx::params::nx_sendfile,
   $server_tokens                  = $nginx::params::nx_server_tokens,
   $service_ensure                 = $nginx::params::nx_service_ensure,
   $service_restart                = $nginx::params::nx_service_restart,
+  $spdy                           = $nginx::params::nx_spdy,
   $super_user                     = $nginx::params::nx_super_user,
+  $temp_dir                       = $nginx::params::nx_temp_dir,
+  $types_hash_bucket_size         = $nginx::params::nx_types_hash_bucket_size,
+  $types_hash_max_size            = $nginx::params::nx_types_hash_max_size,
   $vhost_purge                    = $nginx::params::nx_vhost_purge,
   $worker_connections             = $nginx::params::nx_worker_connections,
   $worker_processes               = $nginx::params::nx_worker_processes,
   $worker_rlimit_nofile           = $nginx::params::nx_worker_rlimit_nofile,
+  $global_owner                   = $nginx::params::nx_global_owner,
+  $global_group                   = $nginx::params::nx_global_group,
+  $global_mode                    = $nginx::params::nx_global_mode,
+  $sites_available_owner          = $nginx::params::nx_sites_available_owner,
+  $sites_available_group          = $nginx::params::nx_sites_available_group,
+  $sites_available_mode           = $nginx::params::nx_sites_available_mode,
+  $geo_mappings                   = {},
+  $string_mappings                = {},
 ) inherits nginx::params {
 
   include stdlib
@@ -146,8 +168,11 @@ class nginx (
   validate_string($proxy_buffers)
   validate_string($proxy_buffer_size)
   if ($http_cfg_append != false) {
-    validate_hash($http_cfg_append)
+    if !(is_hash($http_cfg_append) or is_array($http_cfg_append)) {
+      fail('$http_cfg_append must be either a hash or array')
+    }
   }
+
   validate_string($nginx_error_log)
   validate_string($http_access_log)
   validate_hash($nginx_upstreams)
@@ -157,6 +182,9 @@ class nginx (
   validate_bool($manage_repo)
   validate_string($proxy_headers_hash_bucket_size)
   validate_bool($super_user)
+
+  validate_hash($string_mappings)
+  validate_hash($geo_mappings)
 
   class { 'nginx::package':
     package_name   => $package_name,
@@ -168,8 +196,10 @@ class nginx (
 
   class { 'nginx::config':
     client_body_buffer_size        => $client_body_buffer_size,
+    client_body_temp_path          => $client_body_temp_path,
     client_max_body_size           => $client_max_body_size,
     confd_purge                    => $confd_purge,
+    conf_dir                       => $conf_dir,
     conf_template                  => $conf_template,
     daemon_user                    => $daemon_user,
     events_use                     => $events_use,
@@ -183,10 +213,16 @@ class nginx (
     gzip                           => $gzip,
     http_access_log                => $http_access_log,
     http_cfg_append                => $http_cfg_append,
+    http_tcp_nodelay               => $http_tcp_nodelay,
+    http_tcp_nopush                => $http_tcp_nopush,
+    keepalive_timeout              => $keepalive_timeout,
+    logdir                         => $logdir,
+    mail                           => $mail,
     multi_accept                   => $multi_accept,
     names_hash_bucket_size         => $names_hash_bucket_size,
     names_hash_max_size            => $names_hash_max_size,
     nginx_error_log                => $nginx_error_log,
+    pid                            => $pid,
     proxy_buffers                  => $proxy_buffers,
     proxy_buffer_size              => $proxy_buffer_size,
     proxy_cache_inactive           => $proxy_cache_inactive,
@@ -202,12 +238,25 @@ class nginx (
     proxy_redirect                 => $proxy_redirect,
     proxy_send_timeout             => $proxy_send_timeout,
     proxy_set_header               => $proxy_set_header,
+    proxy_temp_path                => $proxy_temp_path,
+    run_dir                        => $run_dir,
+    sendfile                       => $sendfile,
     server_tokens                  => $server_tokens,
+    spdy                           => $spdy,
     super_user                     => $super_user,
+    temp_dir                       => $temp_dir,
+    types_hash_bucket_size         => $types_hash_bucket_size,
+    types_hash_max_size            => $types_hash_max_size,
     vhost_purge                    => $vhost_purge,
     worker_connections             => $worker_connections,
     worker_processes               => $worker_processes,
     worker_rlimit_nofile           => $worker_rlimit_nofile,
+    global_owner                   => $global_owner,
+    global_group                   => $global_group,
+    global_mode                    => $global_mode,
+    sites_available_owner          => $sites_available_owner,
+    sites_available_group          => $sites_available_group,
+    sites_available_mode           => $sites_available_mode,
     require                        => Class['nginx::package'],
     notify                         => Class['nginx::service'],
   }
@@ -219,6 +268,8 @@ class nginx (
   create_resources('nginx::resource::vhost', $nginx_vhosts)
   create_resources('nginx::resource::location', $nginx_locations)
   create_resources('nginx::resource::mailhost', $nginx_mailhosts)
+  create_resources('nginx::resource::map', $string_mappings)
+  create_resources('nginx::resource::geo', $geo_mappings)
 
   # Allow the end user to establish relationships to the "main" class
   # and preserve the relationship to the implementation classes through
