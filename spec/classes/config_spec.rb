@@ -3,18 +3,18 @@ describe 'nginx::config' do
 
   describe 'with defaults' do
     [
-      { :osfamily => 'debian', :operatingsystem => 'debian', },
-      { :osfamily => 'debian', :operatingsystem => 'ubuntu', },
-      { :osfamily => 'redhat', :operatingsystem => 'fedora', },
-      { :osfamily => 'redhat', :operatingsystem => 'rhel', },
-      { :osfamily => 'redhat', :operatingsystem => 'redhat', },
-      { :osfamily => 'redhat', :operatingsystem => 'centos', },
-      { :osfamily => 'redhat', :operatingsystem => 'scientific', },
-      { :osfamily => 'redhat', :operatingsystem => 'amazon', },
-      { :osfamily => 'suse',   :operatingsystem => 'suse', },
-      { :osfamily => 'suse',   :operatingsystem => 'opensuse', },
-      { :osfamily => 'gentoo', :operatingsystem => 'gentoo', },
-      { :osfamily => 'linux',  :operatingsystem => 'gentoo', },
+      { :osfamily => 'Debian', :operatingsystem => 'Debian', },
+      { :osfamily => 'Debian', :operatingsystem => 'Ubuntu', },
+      { :osfamily => 'Redhat', :operatingsystem => 'Fedora', },
+      { :osfamily => 'Redhat', :operatingsystem => 'RedHat', },
+      { :osfamily => 'Redhat', :operatingsystem => 'OracleLinux', },
+      { :osfamily => 'Redhat', :operatingsystem => 'CentOS', },
+      { :osfamily => 'Redhat', :operatingsystem => 'Scientific', },
+      { :osfamily => 'Redhat', :operatingsystem => 'Amazon', },
+      { :osfamily => 'SuSE',   :operatingsystem => 'SuSE', },
+      { :osfamily => 'SuSE',   :operatingsystem => 'OpenSuSE', },
+      { :osfamily => 'Gentoo', :operatingsystem => 'Gentoo', },
+      { :osfamily => 'Linux',  :operatingsystem => 'Gentoo', },
     ].each do |facts|
 
       context "when osfamily/operatingsystem is #{facts[:osfamily]}/#{facts[:operatingsystem]}" do
@@ -26,66 +26,64 @@ describe 'nginx::config' do
           }
         end
 
-        it { should contain_class("nginx::params") }
-
-        it { should contain_file("/etc/nginx").only_with(
+        it { is_expected.to contain_file("/etc/nginx").only_with(
           :path   => "/etc/nginx",
           :ensure => 'directory',
           :owner => 'root',
           :group => 'root',
           :mode => '0644'
         )}
-        it { should contain_file("/etc/nginx/conf.d").only_with(
+        it { is_expected.to contain_file("/etc/nginx/conf.d").only_with(
           :path   => '/etc/nginx/conf.d',
           :ensure => 'directory',
           :owner => 'root',
           :group => 'root',
           :mode => '0644'
         )}
-        it { should contain_file("/etc/nginx/conf.mail.d").only_with(
+        it { is_expected.to contain_file("/etc/nginx/conf.mail.d").only_with(
           :path   => '/etc/nginx/conf.mail.d',
           :ensure => 'directory',
           :owner => 'root',
           :group => 'root',
           :mode => '0644'
         )}
-        it { should contain_file("/etc/nginx/conf.d/vhost_autogen.conf").with_ensure('absent') }
-        it { should contain_file("/etc/nginx/conf.mail.d/vhost_autogen.conf").with_ensure('absent') }
-        it { should contain_file("/var/nginx").with(
+        it { is_expected.to contain_file("/etc/nginx/conf.d/vhost_autogen.conf").with_ensure('absent') }
+        it { is_expected.to contain_file("/etc/nginx/conf.mail.d/vhost_autogen.conf").with_ensure('absent') }
+        it { is_expected.to contain_file("/var/nginx").with(
           :ensure => 'directory',
           :owner => 'root',
           :group => 'root',
           :mode => '0644'
         )}
-        it { should contain_file("/var/nginx/client_body_temp").with(
+        it { is_expected.to contain_file("/var/nginx/client_body_temp").with(
           :ensure => 'directory',
           :group => 'root',
           :mode => '0644'
         )}
-        it { should contain_file("/var/nginx/proxy_temp").with(
+        it { is_expected.to contain_file("/var/nginx/proxy_temp").with(
           :ensure => 'directory',
           :group => 'root',
           :mode => '0644'
         )}
-        it { should contain_file('/etc/nginx/sites-enabled/default').with_ensure('absent') }
-        it { should contain_file("/etc/nginx/nginx.conf").with(
+        it { is_expected.to contain_file('/etc/nginx/sites-enabled/default').with_ensure('absent') }
+        it { is_expected.to contain_file("/etc/nginx/nginx.conf").with(
           :ensure => 'file',
           :owner => 'root',
           :group => 'root',
           :mode => '0644'
         )}
-        it { should contain_file("/etc/nginx/conf.d/proxy.conf").with(
+        it { is_expected.to contain_file("/etc/nginx/conf.d/proxy.conf").with(
           :ensure => 'file',
           :owner => 'root',
           :group => 'root',
           :mode => '0644'
         )}
-        it { should contain_file("/tmp/nginx.d").with(
+        it { is_expected.to contain_file("/tmp/nginx.d").with(
           :ensure => 'absent',
           :purge => true,
           :recurse => true
         )}
-        it { should contain_file("/tmp/nginx.mail.d").with(
+        it { is_expected.to contain_file("/tmp/nginx.mail.d").with(
           :ensure => 'absent',
           :purge => true,
           :recurse => true
@@ -96,8 +94,8 @@ describe 'nginx::config' do
 
   describe 'with defaults' do
     [
-      { :osfamily => 'debian', :operatingsystem => 'debian', },
-      { :osfamily => 'debian', :operatingsystem => 'ubuntu', },
+      { :osfamily => 'Debian', :operatingsystem => 'Debian', },
+      { :osfamily => 'Debian', :operatingsystem => 'Ubuntu', },
     ].each do |facts|
 
       context "when osfamily/operatingsystem is #{facts[:osfamily]}/#{facts[:operatingsystem]}" do
@@ -108,25 +106,25 @@ describe 'nginx::config' do
             :operatingsystem => facts[:operatingsystem],
           }
         end
-        it { should contain_file("/var/nginx/client_body_temp").with(:owner => 'www-data')}
-        it { should contain_file("/var/nginx/proxy_temp").with(:owner => 'www-data')}
-        it { should contain_file("/etc/nginx/nginx.conf").with_content %r{^user www-data;}}
+        it { is_expected.to contain_file("/var/nginx/client_body_temp").with(:owner => 'www-data')}
+        it { is_expected.to contain_file("/var/nginx/proxy_temp").with(:owner => 'www-data')}
+        it { is_expected.to contain_file("/etc/nginx/nginx.conf").with_content %r{^user www-data;}}
       end
     end
   end
 
   describe 'with defaults' do
     [
-      { :osfamily => 'redhat', :operatingsystem => 'fedora', },
-      { :osfamily => 'redhat', :operatingsystem => 'rhel', },
-      { :osfamily => 'redhat', :operatingsystem => 'redhat', },
-      { :osfamily => 'redhat', :operatingsystem => 'centos', },
-      { :osfamily => 'redhat', :operatingsystem => 'scientific', },
-      { :osfamily => 'redhat', :operatingsystem => 'amazon', },
-      { :osfamily => 'suse',   :operatingsystem => 'suse', },
-      { :osfamily => 'suse',   :operatingsystem => 'opensuse', },
-      { :osfamily => 'gentoo', :operatingsystem => 'gentoo', },
-      { :osfamily => 'linux',  :operatingsystem => 'gentoo', },
+      { :osfamily => 'RedHat', :operatingsystem => 'Fedora', },
+      { :osfamily => 'RedHat', :operatingsystem => 'RedHat', },
+      { :osfamily => 'RedHat', :operatingsystem => 'OracleLinux', },
+      { :osfamily => 'RedHat', :operatingsystem => 'CentOS', },
+      { :osfamily => 'RedHat', :operatingsystem => 'Scientific', },
+      { :osfamily => 'RedHat', :operatingsystem => 'Amazon', },
+      { :osfamily => 'SuSE',   :operatingsystem => 'SuSE', },
+      { :osfamily => 'SuSE',   :operatingsystem => 'openSuSE', },
+      { :osfamily => 'Gentoo', :operatingsystem => 'Gentoo', },
+      { :osfamily => 'Linux',  :operatingsystem => 'Gentoo', },
     ].each do |facts|
 
       context "when osfamily/operatingsystem is #{facts[:osfamily]}/#{facts[:operatingsystem]}" do
@@ -137,9 +135,9 @@ describe 'nginx::config' do
             :operatingsystem => facts[:operatingsystem],
           }
         end
-        it { should contain_file("/var/nginx/client_body_temp").with(:owner => 'nginx')}
-        it { should contain_file("/var/nginx/proxy_temp").with(:owner => 'nginx')}
-        it { should contain_file("/etc/nginx/nginx.conf").with_content %r{^user nginx;}}
+        it { is_expected.to contain_file("/var/nginx/client_body_temp").with(:owner => 'nginx')}
+        it { is_expected.to contain_file("/var/nginx/proxy_temp").with(:owner => 'nginx')}
+        it { is_expected.to contain_file("/etc/nginx/nginx.conf").with_content %r{^user nginx;}}
       end
     end
   end
@@ -148,8 +146,8 @@ describe 'nginx::config' do
 
     let :facts do
       {
-        :osfamily        => 'debian',
-        :operatingsystem => 'debian',
+        :osfamily        => 'Debian',
+        :operatingsystem => 'Debian',
       }
     end
 
@@ -195,13 +193,13 @@ describe 'nginx::config' do
           :title => 'should set proxy_cache_path',
           :attr  => 'proxy_cache_path',
           :value => '/path/to/proxy.cache',
-          :match => '  proxy_cache_path    /path/to/proxy.cache levels=1 keys_zone=d2:100m max_size=500m inactive=20m;',
+          :match => %r'\s+proxy_cache_path\s+/path/to/proxy.cache levels=1 keys_zone=d2:100m max_size=500m inactive=20m;',
         },
         {
           :title    => 'should not set proxy_cache_path',
           :attr     => 'proxy_cache_path',
           :value    => false,
-          :notmatch => /  proxy_cache_path    \/path\/to\/proxy\.cache levels=1 keys_zone=d2:100m max_size=500m inactive=20m;/,
+          :notmatch => %r'\s+proxy_cache_path\s+/path/to/proxy\.cache levels=1 keys_zone=d2:100m max_size=500m inactive=20m;',
         },
         {
           :title => 'should contain ordered appended directives from hash',
@@ -250,11 +248,19 @@ describe 'nginx::config' do
         context "when #{param[:attr]} is #{param[:value]}" do
           let :params do { param[:attr].to_sym => param[:value] } end
 
-          it { should contain_file("/etc/nginx/nginx.conf").with_mode('0644') }
+          it { is_expected.to contain_file("/etc/nginx/nginx.conf").with_mode('0644') }
           it param[:title] do
-            verify_contents(subject, "/etc/nginx/nginx.conf", Array(param[:match]))
+            matches  = Array(param[:match])
+
+            if matches.all? { |m| m.is_a? Regexp }
+              matches.each { |item| is_expected.to contain_file('/etc/nginx/nginx.conf').with_content(item) }
+            else
+              lines = subject.resource('file', '/etc/nginx/nginx.conf').send(:parameters)[:content].split("\n")
+              expect(lines & Array(param[:match])).to eq(Array(param[:match]))
+            end
+
             Array(param[:notmatch]).each do |item|
-              should contain_file("/etc/nginx/nginx.conf").without_content(item)
+              is_expected.to contain_file("/etc/nginx/nginx.conf").without_content(item)
             end
           end
         end
@@ -306,11 +312,19 @@ describe 'nginx::config' do
         context "when #{param[:attr]} is #{param[:value]}" do
           let :params do { param[:attr].to_sym => param[:value] } end
 
-          it { should contain_file("/etc/nginx/conf.d/proxy.conf").with_mode('0644') }
+          it { is_expected.to contain_file("/etc/nginx/conf.d/proxy.conf").with_mode('0644') }
           it param[:title] do
-            verify_contents(subject, "/etc/nginx/conf.d/proxy.conf", Array(param[:match]))
+            matches  = Array(param[:match])
+
+            if matches.all? { |m| m.is_a? Regexp }
+              matches.each { |item| is_expected.to contain_file('/etc/nginx/conf.d/proxy.conf').with_content(item) }
+            else
+              lines = subject.resource('file', '/etc/nginx/conf.d/proxy.conf').send(:parameters)[:content].split("\n")
+              expect(lines & Array(param[:match])).to eq(Array(param[:match]))
+            end
+
             Array(param[:notmatch]).each do |item|
-              should contain_file("/etc/nginx/conf.d/proxy.conf").without_content(item)
+              is_expected.to contain_file("/etc/nginx/conf.d/proxy.conf").without_content(item)
             end
           end
         end
@@ -319,7 +333,7 @@ describe 'nginx::config' do
 
     context "when confd_purge true" do
       let(:params) {{:confd_purge => true}}
-      it { should contain_file('/etc/nginx/conf.d').with(
+      it { is_expected.to contain_file('/etc/nginx/conf.d').with(
         :purge => true,
         :recurse => true
       )}
@@ -327,7 +341,7 @@ describe 'nginx::config' do
 
     context "when confd_purge false" do
       let(:params) {{:confd_purge => false}}
-      it { should contain_file('/etc/nginx/conf.d').without([
+      it { is_expected.to contain_file('/etc/nginx/conf.d').without([
         'ignore',
         'purge',
         'recurse'
@@ -336,11 +350,11 @@ describe 'nginx::config' do
 
     context "when vhost_purge true" do
       let(:params) {{:vhost_purge => true}}
-      it { should contain_file('/etc/nginx/sites-available').with(
+      it { is_expected.to contain_file('/etc/nginx/sites-available').with(
         :purge => true,
         :recurse => true
       )}
-      it { should contain_file('/etc/nginx/sites-enabled').with(
+      it { is_expected.to contain_file('/etc/nginx/sites-enabled').with(
         :purge => true,
         :recurse => true
       )}
@@ -348,12 +362,12 @@ describe 'nginx::config' do
 
     context "when vhost_purge false" do
       let(:params) {{:vhost_purge => false}}
-      it { should contain_file('/etc/nginx/sites-available').without([
+      it { is_expected.to contain_file('/etc/nginx/sites-available').without([
         'ignore',
         'purge',
         'recurse'
       ])}
-      it { should contain_file('/etc/nginx/sites-enabled').without([
+      it { is_expected.to contain_file('/etc/nginx/sites-enabled').without([
         'ignore',
         'purge',
         'recurse'

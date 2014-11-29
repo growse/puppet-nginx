@@ -80,6 +80,10 @@
 #   [*priority*]              - Location priority. Default: 500. User priority
 #     401-499, 501-599. If the priority is higher than the default priority,
 #     the location will be defined after root, or before root.
+#   [*mp4*]             - Indicates whether or not this loation can be
+#     used for mp4 streaming. Default: false
+#   [*flv*]             - Indicates whether or not this loation can be
+#     used for flv streaming. Default: false
 #
 #
 # Actions:
@@ -132,13 +136,13 @@ define nginx::resource::location (
     'index.htm',
     'index.php'],
   $proxy                = undef,
-  $proxy_redirect       = $nginx::config::proxy_redirect,
-  $proxy_read_timeout   = $nginx::config::proxy_read_timeout,
-  $proxy_connect_timeout = $nginx::config::proxy_connect_timeout,
-  $proxy_set_header     = $nginx::config::proxy_set_header,
+  $proxy_redirect       = $::nginx::config::proxy_redirect,
+  $proxy_read_timeout   = $::nginx::config::proxy_read_timeout,
+  $proxy_connect_timeout = $::nginx::config::proxy_connect_timeout,
+  $proxy_set_header     = $::nginx::config::proxy_set_header,
   $fastcgi              = undef,
   $fastcgi_param        = undef,
-  $fastcgi_params       = "${nginx::config::conf_dir}/fastcgi_params",
+  $fastcgi_params       = "${::nginx::config::conf_dir}/fastcgi_params",
   $fastcgi_script       = undef,
   $fastcgi_split_path   = undef,
   $ssl                  = false,
@@ -155,6 +159,7 @@ define nginx::resource::location (
   $location_cfg_append  = undef,
   $location_custom_cfg_prepend  = undef,
   $location_custom_cfg_append   = undef,
+  $include              = undef,
   $try_files            = undef,
   $proxy_cache          = false,
   $proxy_cache_valid    = false,
@@ -163,17 +168,18 @@ define nginx::resource::location (
   $auth_basic           = undef,
   $auth_basic_user_file = undef,
   $rewrite_rules        = [],
-  $priority             = 500
+  $priority             = 500,
+  $mp4             = false,
+  $flv             = false,
 ) {
 
-  include nginx::params
-  $root_group = $nginx::params::root_group
+  $root_group = $::nginx::config::root_group
 
   File {
     owner  => 'root',
     group  => $root_group,
     mode   => '0644',
-    notify => Class['nginx::service'],
+    notify => Class['::nginx::service'],
   }
 
   validate_re($ensure, '^(present|absent)$',
@@ -192,7 +198,9 @@ define nginx::resource::location (
   if ($proxy != undef) {
     validate_string($proxy)
   }
-  validate_string($proxy_redirect)
+  if ($proxy_redirect != undef) {
+    validate_string($proxy_redirect)
+  }
   validate_string($proxy_read_timeout)
   validate_string($proxy_connect_timeout)
   validate_array($proxy_set_header)
@@ -252,6 +260,9 @@ define nginx::resource::location (
   if ($location_cfg_append != undef) {
     validate_hash($location_cfg_append)
   }
+  if ($include != undef) {
+    validate_array($include)
+  }
   if ($try_files != undef) {
     validate_array($try_files)
   }
@@ -288,22 +299,22 @@ define nginx::resource::location (
   }
 
   $vhost_sanitized = regsubst($vhost, ' ', '_', 'G')
-  $config_file = "${nginx::config::conf_dir}/sites-available/${vhost_sanitized}.conf"
+  $config_file = "${::nginx::config::conf_dir}/sites-available/${vhost_sanitized}.conf"
 
   $location_sanitized_tmp = regsubst($location, '\/', '_', 'G')
-  $location_sanitized = regsubst($location_sanitized_tmp, "\\\\", '_', 'G')
+  $location_sanitized = regsubst($location_sanitized_tmp, '\\\\', '_', 'G')
 
   ## Check for various error conditions
   if ($vhost == undef) {
     fail('Cannot create a location reference without attaching to a virtual host')
   }
-  if (($www_root == undef) and ($proxy == undef) and ($location_alias == undef) and ($stub_status == undef) and ($fastcgi == undef) and ($location_custom_cfg == undef)) {
-    fail('Cannot create a location reference without a www_root, proxy, location_alias, fastcgi, stub_status, or location_custom_cfg defined')
+  if (($www_root == undef) and ($proxy == undef) and ($location_alias == undef) and ($stub_status == undef) and ($fastcgi == undef) and ($location_custom_cfg == undef) and ($internal == false)) {
+    fail('Cannot create a location reference without a www_root, proxy, location_alias, fastcgi, stub_status, internal, or location_custom_cfg defined')
   }
   if (($www_root != undef) and ($proxy != undef)) {
     fail('Cannot define both directory and proxy in a virtual host')
   }
-  
+
   # fastcgi_script is deprecated
   if ($fastcgi_script != undef) {
     warning('The $fastcgi_script parameter is deprecated; please use $fastcgi_param instead to define custom fastcgi_params!')
@@ -336,7 +347,7 @@ define nginx::resource::location (
   if ($ssl_only != true) {
     $tmpFile=md5("${vhost_sanitized}-${priority}-${location_sanitized}")
 
-    concat::fragment { "${tmpFile}":
+    concat::fragment { $tmpFile:
       ensure  => present,
       target  => $config_file,
       content => join([
@@ -344,7 +355,7 @@ define nginx::resource::location (
         $content_real,
         template('nginx/vhost/location_footer.erb')
       ], ''),
-      order   => "${priority}",
+      order   => "${priority}", #lint:ignore:only_variable_string waiting on https://github.com/puppetlabs/puppetlabs-concat/commit/f70881fbfd01c404616e9e4139d98dad78d5a918
     }
   }
 
@@ -353,7 +364,7 @@ define nginx::resource::location (
     $ssl_priority = $priority + 300
 
     $sslTmpFile=md5("${vhost_sanitized}-${ssl_priority}-${location_sanitized}-ssl")
-    concat::fragment {"${sslTmpFile}":
+    concat::fragment { $sslTmpFile:
       ensure  => present,
       target  => $config_file,
       content => join([
@@ -361,13 +372,13 @@ define nginx::resource::location (
         $content_real,
         template('nginx/vhost/location_footer.erb')
       ], ''),
-      order   => "${ssl_priority}",
+      order   => "${ssl_priority}", #lint:ignore:only_variable_string waiting on https://github.com/puppetlabs/puppetlabs-concat/commit/f70881fbfd01c404616e9e4139d98dad78d5a918
     }
   }
 
   if ($auth_basic_user_file != undef) {
     #Generate htpasswd with provided file-locations
-    file { "${nginx::config::conf_dir}/${location_sanitized}_htpasswd":
+    file { "${::nginx::config::conf_dir}/${location_sanitized}_htpasswd":
       ensure => $ensure,
       mode   => '0644',
       source => $auth_basic_user_file,

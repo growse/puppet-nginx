@@ -13,7 +13,6 @@ describe 'nginx::resource::upstream' do
 
   let :pre_condition do
       [
-      'include ::nginx::params',
       'include ::nginx::config',
       ]
   end
@@ -28,7 +27,6 @@ describe 'nginx::resource::upstream' do
 
   let :pre_condition do
     [
-      'include ::nginx::params',
       'include ::nginx::config',
     ]
   end
@@ -39,13 +37,12 @@ describe 'nginx::resource::upstream' do
     describe 'basic assumptions' do
       let :params do default_params end
 
-      it { should contain_class("nginx::params") }
-      it { should contain_class('concat::setup') }
-      it { should contain_file("/etc/nginx/conf.d/#{title}-upstream.conf") }
-      it { should contain_concat__fragment("#{title}_upstream_header").with_content(/upstream #{title}/) }
+      it { is_expected.to contain_class('concat::setup') }
+      it { is_expected.to contain_file("/etc/nginx/conf.d/#{title}-upstream.conf") }
+      it { is_expected.to contain_concat__fragment("#{title}_upstream_header").with_content(/upstream #{title}/) }
 
       it {
-        should contain_concat__fragment("#{title}_upstream_header").with(
+        is_expected.to contain_concat__fragment("#{title}_upstream_header").with(
         {
           'target' => "/etc/nginx/conf.d/#{title}-upstream.conf",
           'order'  => 10,
@@ -53,7 +50,7 @@ describe 'nginx::resource::upstream' do
       )}
 
       it {
-        should contain_concat__fragment("#{title}_upstream_members").with(
+        is_expected.to contain_concat__fragment("#{title}_upstream_members").with(
         {
           'target' => "/etc/nginx/conf.d/#{title}-upstream.conf",
           'order'  => 50,
@@ -61,7 +58,7 @@ describe 'nginx::resource::upstream' do
       )}
 
       it {
-        should contain_concat__fragment("#{title}_upstream_footer").with(
+        is_expected.to contain_concat__fragment("#{title}_upstream_footer").with(
         {
           'target' => "/etc/nginx/conf.d/#{title}-upstream.conf",
           'order'  => 90,
@@ -110,13 +107,13 @@ describe 'nginx::resource::upstream' do
         context "when #{param[:attr]} is #{param[:value]}" do
           let :params do default_params.merge({ param[:attr].to_sym => param[:value] }) end
 
-          it { should contain_file("/etc/nginx/conf.d/#{title}-upstream.conf").with_mode('0644') }
-          it { should contain_concat__fragment("#{title}_upstream_#{param[:fragment]}") }
+          it { is_expected.to contain_file("/etc/nginx/conf.d/#{title}-upstream.conf").with_mode('0644') }
+          it { is_expected.to contain_concat__fragment("#{title}_upstream_#{param[:fragment]}") }
           it param[:title] do
             lines = subject.resource('concat::fragment', "#{title}_upstream_#{param[:fragment]}").send(:parameters)[:content].split("\n")
-            (lines & Array(param[:match])).should == Array(param[:match])
+            expect(lines & Array(param[:match])).to eq(Array(param[:match]))
             Array(param[:notmatch]).each do |item|
-              should contain_concat__fragment("#{title}_upstream_#{param[:fragment]}").without_content(item)
+              is_expected.to contain_concat__fragment("#{title}_upstream_#{param[:fragment]}").without_content(item)
             end
           end
         end
@@ -129,7 +126,7 @@ describe 'nginx::resource::upstream' do
           }
         ) end
 
-        it { should contain_file("/etc/nginx/conf.d/#{title}-upstream.conf").with_ensure('absent') }
+        it { is_expected.to contain_file("/etc/nginx/conf.d/#{title}-upstream.conf").with_ensure('absent') }
       end
     end
   end
