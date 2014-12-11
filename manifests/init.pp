@@ -79,6 +79,7 @@ class nginx (
   $global_group                   = undef,
   $global_mode                    = undef,
   $logdir                         = undef,
+  $log_format                     = undef,
   $http_access_log                = undef,
   $nginx_error_log                = undef,
   $pid                            = undef,
@@ -158,6 +159,7 @@ class nginx (
         $http_tcp_nopush or
         $keepalive_timeout or
         $logdir or
+        $log_format or
         $mail or
         $multi_accept or
         $names_hash_bucket_size or
@@ -237,6 +239,7 @@ class nginx (
       http_tcp_nopush                => $http_tcp_nopush,
       keepalive_timeout              => $keepalive_timeout,
       log_dir                        => $logdir,
+      log_format                     => $log_format,
       mail                           => $mail,
       multi_accept                   => $multi_accept,
       names_hash_bucket_size         => $names_hash_bucket_size,
@@ -282,7 +285,11 @@ class nginx (
     }
   }
 
-  class { '::nginx::service': }
+  class { '::nginx::service':
+    configtest_enable => $configtest_enable,
+    service_ensure    => $service_ensure,
+    service_restart   => $service_restart,
+  }
 
   create_resources('::nginx::resource::upstream', $nginx_upstreams)
   create_resources('::nginx::resource::vhost', $nginx_vhosts, $nginx_vhosts_defaults)

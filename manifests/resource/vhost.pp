@@ -493,6 +493,7 @@ define nginx::resource::vhost (
       proxy_cache           => $proxy_cache,
       proxy_cache_valid     => $proxy_cache_valid,
       proxy_method          => $proxy_method,
+      proxy_set_header      => $proxy_set_header,
       proxy_set_body        => $proxy_set_body,
       fastcgi               => $fastcgi,
       fastcgi_params        => $fastcgi_params,
@@ -514,22 +515,22 @@ define nginx::resource::vhost (
 
   # Support location_cfg_prepend and location_cfg_append on default location created by vhost
   if $location_cfg_prepend {
-    ::Nginx::Resource::Location["${name_sanitized}-default"] {
+    Nginx::Resource::Location["${name_sanitized}-default"] {
       location_cfg_prepend => $location_cfg_prepend }
   }
 
   if $location_cfg_append {
-    ::Nginx::Resource::Location["${name_sanitized}-default"] {
+    Nginx::Resource::Location["${name_sanitized}-default"] {
       location_cfg_append => $location_cfg_append }
   }
 
   if $location_custom_cfg_prepend {
-    ::Nginx::Resource::Location["${name_sanitized}-default"] {
+    Nginx::Resource::Location["${name_sanitized}-default"] {
       location_custom_cfg_prepend => $location_custom_cfg_prepend }
   }
 
   if $location_custom_cfg_append {
-    ::Nginx::Resource::Location["${name_sanitized}-default"] {
+    Nginx::Resource::Location["${name_sanitized}-default"] {
       location_custom_cfg_append => $location_custom_cfg_append }
   }
 
