@@ -100,15 +100,16 @@ class nginx (
 
   ### START Package Configuration ###
   $package_ensure                 = present,
-  $package_name                   = 'nginx',
+  $package_name                   = $::nginx::params::package_name,
   $package_source                 = 'nginx',
-  $manage_repo                    = true,
+  $manage_repo                    = $::nginx::params::manage_repo,
   ### END Package Configuration ###
 
   ### START Service Configuation ###
   $configtest_enable              = false,
   $service_ensure                 = running,
   $service_restart                = '/etc/init.d/nginx configtest && /etc/init.d/nginx restart',
+  $service_name                   = undef,
   ### END Service Configuration ###
 
   ### START Hiera Lookups ###
@@ -120,7 +121,7 @@ class nginx (
   $nginx_vhosts                   = {},
   $nginx_vhosts_defaults          = {},
   ### END Hiera Lookups ###
-) {
+) inherits ::nginx::params {
 
   ### DEPRECATION WARNING ###
   ###
@@ -289,6 +290,7 @@ class nginx (
     configtest_enable => $configtest_enable,
     service_ensure    => $service_ensure,
     service_restart   => $service_restart,
+    service_name      => $service_name,
   }
 
   create_resources('::nginx::resource::upstream', $nginx_upstreams)
